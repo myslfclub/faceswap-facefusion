@@ -1,5 +1,7 @@
-# .streamlit/config.toml
+[general]
+email = "ton@email.com"
+
 [server]
 headless = true
-enableCORS = false
 port = 8501
+enableCORS = false
