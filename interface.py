@@ -1,27 +1,40 @@
+# interface.py (Streamlit)
+
 import streamlit as st
 import requests
 import os
 
-st.title("Face Swap Cloud")
-st.write("Remplacez un visage sur une vidéo (QuickTime, MP4)")
+st.set_page_config(page_title="FaceSwap Cloud", layout="centered")
 
-video_file = st.file_uploader("Upload vidéo", type=["mp4", "mov"])
-face_file = st.file_uploader("Upload visage (image)", type=["jpg", "jpeg", "png"])
-api_key = st.text_input("Clé API", value="demo-key", type="password")
+st.title("🪄 Face Swap Cloud")
+st.markdown("Upload a face image and a video to apply face swap.")
 
-if st.button("Lancer le swap") and video_file and face_file:
-    files = {
-        "video": (video_file.name, video_file, video_file.type),
-        "image": (face_file.name, face_file, face_file.type)
-    }
-    data = {"resolution": "720"}
-    headers = {"x-api-key": api_key}
+# ✅ Utilise les variables d'environnement définies dans Streamlit Cloud
+backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/faceswap")
+api_key = os.getenv("API_KEY", "demo-key")
 
-    try:
-        response = requests.post("http://127.0.0.1:8000/faceswap", files=files, data=data, headers=headers)
-        if response.status_code == 200:
-            st.video(response.content)
-        else:
-            st.error(f"Erreur: {response.status_code} - {response.text}")
-    except Exception as e:
-        st.error(f"Échec de connexion: {e}")
+image_file = st.file_uploader("Upload Face Image (jpg, png)", type=["jpg", "jpeg", "png"])
+video_file = st.file_uploader("Upload Video File (mp4, mov)", type=["mp4", "mov"])
+resolution = st.selectbox("Output Resolution", ["720", "1080"], index=0)
+
+if st.button("Launch FaceSwap"):
+    if image_file and video_file:
+        with st.spinner("Processing face swap..."):
+            files = {
+                "image": (image_file.name, image_file, image_file.type),
+                "video": (video_file.name, video_file, video_file.type)
+            }
+            data = {"resolution": resolution}
+            headers = {"x-api-key": api_key}
+
+            try:
+                response = requests.post(backend_url, files=files, data=data, headers=headers)
+                if response.status_code == 200:
+                    st.success("✅ Done! Download your video below.")
+                    st.video(response.content)
+                else:
+                    st.error(f"❌ Error: {response.status_code} - {response.text}")
+            except requests.exceptions.RequestException as e:
+                st.error(f"🚫 Connection failed: {e}")
+    else:
+        st.warning("📂 Please upload both an image and a video.")
