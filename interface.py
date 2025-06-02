@@ -1,40 +1,35 @@
-
-# interface.py (Streamlit)
-
 import streamlit as st
 import requests
 import os
 import tempfile
 
 st.set_page_config(page_title="FaceSwap Cloud", layout="centered")
-
 st.title("🪄 Face Swap Cloud")
 st.markdown("Upload a video and a face image to apply face swap.")
 
-# ✅ Utilise les variables d'environnement définies dans Streamlit Cloud
 backend_url = os.getenv("BACKEND_URL", "https://faceswap-facefusion.streamlit.app/faceswap")
 api_key = os.getenv("API_KEY", "demo-key")
+MAX_SIZE = 100 * 1024 * 1024  # 100 MB
 
-# ⚠️ Limite de taille de fichier : 100 Mo (en bytes)
-MAX_SIZE = 100 * 1024 * 1024
-
-# Ordre inversé : vidéo d'abord, puis image
-video_file = st.file_uploader("Upload Video File (mp4, mov)", type=["mp4", "mov"])
-image_file = st.file_uploader("Upload Face Image (jpg, png)", type=["jpg", "jpeg", "png"])
+# Uploads : Vidéo en premier
+video_file = st.file_uploader("🎥 Upload Video File (mp4, mov)", type=["mp4", "mov"])
+image_file = st.file_uploader("🖼️ Upload Face Image (jpg, png)", type=["jpg", "jpeg", "png"])
 resolution = st.selectbox("Output Resolution", ["720", "1080"], index=0)
 
-# Avertissements de taille
+# Avertissements mais PAS de blocage
 if video_file and video_file.size > MAX_SIZE:
-    st.warning("⚠️ La vidéo dépasse 100 Mo. Merci d'en choisir une plus légère.")
+    st.warning("⚠️ Fichier vidéo >100 Mo. Cela pourrait échouer à l’envoi.")
 if image_file and image_file.size > MAX_SIZE:
-    st.warning("⚠️ L'image dépasse 100 Mo. Merci d'en choisir une plus légère.")
+    st.warning("⚠️ Image >100 Mo. Compression recommandée.")
 
-if st.button("Launch FaceSwap"):
-    if image_file and video_file and image_file.size <= MAX_SIZE and video_file.size <= MAX_SIZE:
+if st.button("🚀 Launch FaceSwap"):
+    if not video_file or not image_file:
+        st.warning("📂 Veuillez importer une vidéo ET une image.")
+    else:
         with st.spinner("Processing face swap..."):
             files = {
                 "image": (image_file.name, image_file, image_file.type),
-                "video": (video_file.name, video_file, video_file.type)
+                "video": (video_file.name, video_file, video_file.type),
             }
             data = {"resolution": resolution}
             headers = {"x-api-key": api_key}
@@ -49,11 +44,7 @@ if st.button("Launch FaceSwap"):
                     st.video(tmp_path)
                     with open(tmp_path, "rb") as file:
                         st.download_button("Download result", file, file_name="result.mp4")
-                elif response.status_code == 413:
-                    st.error("❌ Fichier trop volumineux pour le serveur. Veuillez compresser la vidéo.")
                 else:
                     st.error(f"❌ Error: {response.status_code} - {response.text}")
             except requests.exceptions.RequestException as e:
                 st.error(f"🚫 Connection failed: {e}")
-    else:
-        st.warning("📂 Please upload both a video and an image within 100MB size limit.")
