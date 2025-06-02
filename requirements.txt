@@ -1,5 +1,2 @@
-fastapi
-uvicorn
-ffmpeg-python
-aiofiles
-python-multipart
+streamlit
+requests
